@@ -22,6 +22,21 @@ ss = st.session_state
 st.title("📝 Form Bot")
 st.caption("Fills your own public, single-page Google Form with generated responses.")
 
+
+def repair(fields, rows):
+    """Replace any answer that isn't a valid option with a random valid one."""
+    for r in rows:
+        for f in fields:
+            if not f["options"] or f["type"] not in (2, 3, 4):
+                continue
+            v = (r.get(f["label"]) or "").strip()
+            if f["type"] == 4:
+                kept = [x.strip() for x in v.split(";") if x.strip() in f["options"]]
+                r[f["label"]] = ";".join(kept) if kept else random.choice(f["options"])
+            elif v not in f["options"]:
+                r[f["label"]] = random.choice(f["options"])
+    return rows
+
 # ---- settings
 with st.sidebar:
     st.header("Settings")
@@ -94,21 +109,6 @@ if "rows" in ss and ss.rows:
     if labels:
         csv_data = pd.DataFrame(ss.rows, columns=labels).to_csv(index=False)
         col3.download_button("Download CSV", csv_data, "responses.csv", mime="text/csv")
-
-
-def repair(fields, rows):
-    """Replace any answer that isn't a valid option with a random valid one."""
-    for r in rows:
-        for f in fields:
-            if not f["options"] or f["type"] not in (2, 3, 4):
-                continue
-            v = (r.get(f["label"]) or "").strip()
-            if f["type"] == 4:
-                kept = [x.strip() for x in v.split(";") if x.strip() in f["options"]]
-                r[f["label"]] = ";".join(kept) if kept else random.choice(f["options"])
-            elif v not in f["options"]:
-                r[f["label"]] = random.choice(f["options"])
-    return rows
 
 
 # ---- step 1: generate
