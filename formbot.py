@@ -208,7 +208,7 @@ def cmd_send(args):
             print(f"Failed rows: {failed}  (re-run with a CSV of just these rows)")
 
 
-def generate_rows(fields, count, context, model, key, on_progress=print):
+def generate_rows(fields, count, context, model, key, on_progress=print, on_batch=None):
     """Ask Gemini for `count` varied response rows. Returns a list of dicts keyed by label."""
     from google import genai
     from google.genai import types
@@ -239,6 +239,10 @@ def generate_rows(fields, count, context, model, key, on_progress=print):
                     ),
                 )
                 rows.extend(json.loads(resp.text))
+                # Call on_batch callback after each successful batch
+                if on_batch:
+                    labels = [f["label"] for f in fields]
+                    on_batch([{k: str(r.get(k, "")) for k in labels} for r in rows])
                 break
             except Exception as e:
                 if attempt == 3:

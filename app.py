@@ -41,6 +41,15 @@ count = st.number_input("Number of responses", min_value=1, max_value=500, value
 respondents = st.text_area("Who are the responders?",
                            placeholder="e.g. Students aged 18-25 at a UK university, mixed genders")
 
+# Show if we have partial progress
+if "rows" in ss and ss.rows:
+    col1, col2 = st.columns([3, 1])
+    col1.info(f"📊 You have {len(ss.rows)} responses already generated. Click 'Generate responses' to add more.")
+    if col2.button("Clear", key="clear"):
+        ss.pop("rows", None)
+        ss.pop("fields", None)
+        st.rerun()
+
 
 def repair(fields, rows):
     """Replace any answer that isn't a valid option with a random valid one."""
@@ -71,8 +80,15 @@ if st.button("Generate responses", type="primary"):
             fields = fb.load_form(view_url)
             if fb.SKIPPED:
                 st.warning("Skipped (not supported): " + ", ".join(fb.SKIPPED))
+            
+            # Callback to save progress after each batch
+            def save_batch(current_rows):
+                ss.fields, ss.rows = fields, repair(fields, current_rows)
+                ss.post_url = view_url.replace("/viewform", "/formResponse")
+            
             rows = fb.generate_rows(fields, int(count), respondents or "General respondents",
-                                    model, api_key, on_progress=lambda m: status.info(m))
+                                    model, api_key, on_progress=lambda m: status.info(m),
+                                    on_batch=save_batch)
             ss.fields, ss.rows = fields, repair(fields, rows)
             ss.post_url = view_url.replace("/viewform", "/formResponse")
             status.empty()
@@ -80,6 +96,8 @@ if st.button("Generate responses", type="primary"):
             status.error(str(e))
         except Exception as e:
             status.error(f"Something went wrong: {e}")
+            if "rows" in ss and ss.rows:
+                st.warning(f"Saved {len(ss.rows)} partial responses. Click 'Generate responses' again to continue (it will generate new responses to add to these).")
 
 if "rows" not in ss:
     st.stop()
