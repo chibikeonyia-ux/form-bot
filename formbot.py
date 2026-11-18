@@ -289,7 +289,7 @@ def main():
     g.add_argument("form_url"); g.add_argument("out")
     g.add_argument("--count", type=int, default=90)
     g.add_argument("--context", default="General respondents")
-    g.add_argument("--model", default="gemini-3.8-flash")
+    g.add_argument("--model", default="gemini-3.8-flash", choices=["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"])
     g.set_defaults(fn=cmd_generate)
 
     args = p.parse_args()
